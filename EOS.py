@@ -8,6 +8,7 @@ adiabatic index, pressure, etc for a partially-ionized hydrogen-helium mixture
 """
 
 import numpy as np
+from scipy.optimize import root
 from dataclasses import dataclass
 from partition_functions import etot_molecular_hydrogen
 from constants import BOLTZMANN, ELECTRONVOLT, PROTONMASS
@@ -20,9 +21,9 @@ class ChemicalState:
 
     f_mol: float = 1.0
     f_ortho: float = 0.75
-    hydrogen_massfrac: float = 0.71
+    hydrogen_massfrac: float = 0.7381
     ionization_fraction: float = 0.0
-    metallicity: float = 0.014
+    metallicity: float = 0.0134
     ortho_fraction: float = 0.75
 
     @property
@@ -87,8 +88,8 @@ class EOS:
         eps_H2 = 0.5 * self.cs.X * (1 - self.cs.y) * e_H2
         eps_HI = 1.5 * self.cs.X * (1 + self.cs.x) * self.cs.y * kT
         eps_He = 0.375 * self.cs.Y * kT
-        # eps_diss = 4.48 * ELECTRONVOLT * self.cs.X * self.cs.y / 2
-        return eps_H2 + eps_HI + eps_He
+        eps_diss = 4.48 * ELECTRONVOLT * self.cs.X * self.cs.y / 2
+        return eps_H2 + eps_HI + eps_He + eps_diss
 
     def internal_energy_permass(self, temp):
         """Returns internal energy per unit mass"""
@@ -113,8 +114,10 @@ class EOS:
     def u_to_temp(self, u):
         """Converts internal energy per unit mass to temperature"""
 
-        # rootfind internal_energy_permass = u for T
-        return 0
+        def func(T):
+            return self.internal_energy_permass(T) - u
+
+        return root(func, u * PROTONMASS / BOLTZMANN).x
 
     def eos_gamma(self, temp):
         """Returns adiabatic index"""
