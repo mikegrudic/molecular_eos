@@ -83,7 +83,7 @@ def evib_hydrogen(temp):
     return BOLTZMANN * THETA_VIB / np.expm1(THETA_VIB / temp)
 
 
-def etot_hydrogen(temp, ortho_frac=0.75):
+def etot_molecular_hydrogen(temp, ortho_frac=0.75):
     """
     Mean total (trans+vib+rot) energy of a hydrogen molecule
 
