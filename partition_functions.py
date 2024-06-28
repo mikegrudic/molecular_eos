@@ -3,14 +3,14 @@ and vibrational partition functions of molecular hydrogen
 """
 
 import numpy as np
-from numba import vectorize, float64, boolean, njit
+from numba import vectorize, float64, boolean, njit, prange
 from constants import BOLTZMANN, THETA_ROT, THETA_VIB, EPSILON
 
 VECTORIZE_TARGET = "parallel"
 
 
-@njit
-def erot_hydrogen(temp, ortho=True):
+@njit(parallel=True, fastmath=True)
+def molecular_hydrogen_zrot(temp, ortho=True):
     """
     Average rotational energy of a molecular hydrogen molecule
 
@@ -28,54 +28,70 @@ def erot_hydrogen(temp, ortho=True):
         each row returns the average rotational energy per molecule, and the
         heat capacity per molecule at constant volume
     """
-    error = 1e100
-    z = 0.0
-    dz_dtemp = 0.0
-    d2z_dtemp2 = 0.0
-    theta_beta = THETA_ROT / temp
 
-    result = np.empty(3)
-
-    if ortho:
-        j = 1
+    if isinstance(temp, float):
+        N = 1
+        temp = np.array([temp])
     else:
-        j = 0
+        N = temp.shape[0]
+    result = np.empty((N, 3))
 
-    while error > EPSILON:
-        twojplusone = 2 * j + 1
-        jjplusone = j * (j + 1)
+    for i in prange(N):
+        error = 1e100
+        z = 0.0
+        dz_dtemp = 0.0
+        d2z_dtemp2 = 0.0
+        temp_i = temp[i]
+        theta_beta = THETA_ROT / temp_i
 
         if ortho:
-            expterm = 3 * np.exp(-theta_beta * (jjplusone - 2))
-            zterm = twojplusone * expterm
-            dzterm = (jjplusone - 2) * theta_beta / temp * zterm
-            d2zterm = ((jjplusone - 2) * THETA_ROT - 2 * temp) * dzterm / (temp * temp)
+            j = 1
         else:
-            expterm = np.exp(-theta_beta * jjplusone)
-            zterm = twojplusone * expterm
-            dzterm = (
-                jjplusone * theta_beta * zterm / temp
-            )  # twojplusone * expterm * jjplusone * theta_beta / temp
-            d2zterm = (jjplusone * THETA_ROT - 2 * temp) * dzterm / (temp * temp)
+            j = 0
 
-        z += zterm
-        dz_dtemp += dzterm
-        d2z_dtemp2 += d2zterm
-        error = max(zterm / z, dzterm / dz_dtemp, d2zterm / d2z_dtemp2)
-        j += 2
+        while error > EPSILON:
+            twojplusone = 2 * j + 1
+            jjplusone = j * (j + 1)
 
-    result[0] = z
-    result[1] = BOLTZMANN * temp * temp * dz_dtemp / z
-    result[2] = BOLTZMANN * temp * (2 * dz_dtemp + temp * d2z_dtemp2) / z
+            if ortho:
+                expterm = 3 * np.exp(-theta_beta * (jjplusone - 2))
+                zterm = twojplusone * expterm
+                dzterm = (jjplusone - 2) * theta_beta / temp_i * zterm
+                d2zterm = (
+                    ((jjplusone - 2) * THETA_ROT - 2 * temp_i)
+                    * dzterm
+                    / (temp_i * temp_i)
+                )
+            else:
+                expterm = np.exp(-theta_beta * jjplusone)
+                zterm = twojplusone * expterm
+                # twojplusone * expterm * jjplusone * theta_beta / temp_i
+                dzterm = jjplusone * theta_beta * zterm / temp_i
+                d2zterm = (
+                    (jjplusone * THETA_ROT - 2 * temp_i) * dzterm / (temp_i * temp_i)
+                )
+
+            z += zterm
+            dz_dtemp += dzterm
+            d2z_dtemp2 += d2zterm
+            # print(zterm / z, dzterm / dz_dtemp, d2zterm / d2z_dtemp2)
+            error = zterm / z  # max(zterm / z, dzterm / dz_dtemp, d2zterm / d2z_dtemp2)
+            j += 2
+
+        result[i, 0] = z
+        result[i, 1] = BOLTZMANN * temp_i * temp_i * dz_dtemp / z
+        result[i, 2] = (
+            BOLTZMANN
+            * temp_i
+            * (2 * dz_dtemp + temp_i * d2z_dtemp2 - temp_i * dz_dtemp * dz_dtemp / z)
+            / z
+        )
+
     return result
 
 
-@vectorize(
-    [float64(float64)],
-    fastmath=True,
-    target=VECTORIZE_TARGET,
-)
-def evib_hydrogen(temp):
+@njit(parallel=True, fastmath=True)
+def molecular_hydrogen_zvib(temp):
     """
     Mean vibrational energy of a hydrogen molecule
 
@@ -86,29 +102,52 @@ def evib_hydrogen(temp):
 
     Returns
     -------
-    Evib: float or array_like
-        Mean vibrational energy at that temperature
+    result: ndarray
+        Shape (N,3) array where each row contains 1. the partition function value,
+        2. the average energy per molecule, and 3. the constant-volume heat capacity
     """
-    return BOLTZMANN * THETA_VIB / np.expm1(THETA_VIB / temp)
+
+    if isinstance(temp, float):
+        N = 1
+        temp = np.array([temp])
+    else:
+        N = temp.shape[0]
+    result = np.empty((N, 3))
+
+    for i in prange(N):
+        result[i, 0] = -1.0 / np.expm1(-THETA_VIB / temp[i])
+        result[i, 1] = BOLTZMANN * THETA_VIB / np.expm1(THETA_VIB / temp[i])
+        result[i, 2] = THETA_VIB * result[i, 0] * result[i, 1] / (temp[i] * temp[i])
+    return result
 
 
-def etot_molecular_hydrogen(temp, ortho_frac=0.75):
+def molecular_hydrogen_energy(temp, ortho_frac=0.75):
     """
-    Mean total (trans+vib+rot) energy of a hydrogen molecule
+    Parition function properties of a mixture of para- and ortho-hydrogen
 
     Parameters
     ----------
     temp: float or array_like
         Temperature in K
-    ortho: boolean, optional
-        True if you want ortho-H2, otherwise assumes para
+    ortho_frac: float, optional
+        Fraction of ortho-H2 (default is 3:1 ortho:para mixture)
 
     Returns
     -------
-    Etot: float or array_like
-        Mean total energy of hydrogen molecule at that temperature
+    etot, cv, gamma: tuple
+        tuple of ndarrays containing the average energy and constant volume heat
+        capacity per molecule in CGS, and adiabatic index
     """
-    erot = ortho_frac * erot_hydrogen(temp, True)
-    erot += (1 - ortho_frac) * erot_hydrogen(temp, False)
-    evib = evib_hydrogen(temp)
-    return 1.5 * BOLTZMANN * temp + erot + evib
+    zrot_ortho = molecular_hydrogen_zrot(temp, True)
+    zrot_para = molecular_hydrogen_zrot(temp, False)
+    zvib = molecular_hydrogen_zvib(temp)
+    etot = 1.5 * BOLTZMANN * temp  # translation
+    cv = 1.5 * BOLTZMANN
+    etot += ortho_frac * zrot_ortho[:, 1]  # ortho rotation
+    cv += ortho_frac * zrot_ortho[:, 2]
+    etot += (1 - ortho_frac) * zrot_para[:, 1]  # para rotation
+    cv += (1 - ortho_frac) * zrot_para[:, 2]
+    etot += zvib[:, 1]  # vibration
+    cv += zvib[:, 2]
+    gamma = (cv / BOLTZMANN + 1) / (cv / BOLTZMANN)
+    return etot, cv, gamma
