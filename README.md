@@ -1,4 +1,4 @@
 # molecular_eos
 routines for computing the equation of state quantities of a partially-ionized mixture of molecular and atomic hydrogen and helium
 
-!(H2_eos.png)
+![](H2_eos.png)
