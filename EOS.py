@@ -7,10 +7,10 @@ EOS - class implementing functions for relating internal energies, specific heat
 adiabatic index, pressure, etc for a partially-ionized hydrogen-helium mixture
 """
 
+from dataclasses import dataclass
 import numpy as np
 from scipy.optimize import root
-from dataclasses import dataclass
-from partition_functions import etot_molecular_hydrogen
+from partition_functions import molecular_hydrogen_energy
 from constants import BOLTZMANN, ELECTRONVOLT, PROTONMASS
 
 
@@ -84,7 +84,7 @@ class EOS:
     def internal_energy_perH(self, temp):
         """Returns internal energy per H as a function of temperature"""
         kT = BOLTZMANN * temp
-        e_H2 = etot_molecular_hydrogen(temp, self.cs.ortho_fraction)
+        logzrot, e_H2, cv, gamma = molecular_hydrogen_energy(Tgrid)
         eps_H2 = 0.5 * self.cs.X * (1 - self.cs.y) * e_H2
         eps_HI = 1.5 * self.cs.X * (1 + self.cs.x) * self.cs.y * kT
         eps_He = 0.375 * self.cs.Y * kT

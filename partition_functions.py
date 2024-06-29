@@ -123,7 +123,7 @@ def molecular_hydrogen_zvib(temp):
 
 def molecular_hydrogen_energy(temp, ortho_frac=0.75):
     """
-    Parition function properties of a mixture of para- and ortho-hydrogen
+    Partition function properties of a mixture of para- and ortho-hydrogen
 
     Parameters
     ----------
@@ -138,6 +138,8 @@ def molecular_hydrogen_energy(temp, ortho_frac=0.75):
         tuple of ndarrays containing the average energy and constant volume heat
         capacity per molecule in CGS, and adiabatic index
     """
+
+    para_frac = 1 - ortho_frac
     zrot_ortho = molecular_hydrogen_zrot(temp, True)
     zrot_para = molecular_hydrogen_zrot(temp, False)
     zvib = molecular_hydrogen_zvib(temp)
@@ -145,9 +147,12 @@ def molecular_hydrogen_energy(temp, ortho_frac=0.75):
     cv = 1.5 * BOLTZMANN
     etot += ortho_frac * zrot_ortho[:, 1]  # ortho rotation
     cv += ortho_frac * zrot_ortho[:, 2]
-    etot += (1 - ortho_frac) * zrot_para[:, 1]  # para rotation
-    cv += (1 - ortho_frac) * zrot_para[:, 2]
+    etot += para_frac * zrot_para[:, 1]  # para rotation
+    cv += para_frac * zrot_para[:, 2]
     etot += zvib[:, 1]  # vibration
     cv += zvib[:, 2]
     gamma = (cv / BOLTZMANN + 1) / (cv / BOLTZMANN)
-    return etot, cv, gamma
+    zrot_total = ortho_frac * np.log(zrot_ortho[:, 0]) + para_frac * np.log(
+        zrot_para[:, 0]
+    )
+    return zrot_total, etot, cv, gamma

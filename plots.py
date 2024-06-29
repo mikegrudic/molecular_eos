@@ -10,7 +10,7 @@ import numpy as np
 def do_plots():
     """Make plots of internal energy, heat capacity, and adiabatic index"""
     Tgrid = np.logspace(1, 4.5, 10**6)
-    e, cv, gamma = molecular_hydrogen_energy(Tgrid)
+    logzrot, e, cv, gamma = molecular_hydrogen_energy(Tgrid)
 
     fig, ax = plt.subplots(1, 3, figsize=(8, 3))
 
