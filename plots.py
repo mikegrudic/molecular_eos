@@ -1,7 +1,7 @@
+from matplotlib import pyplot as plt
 import matplotlib
 
 matplotlib.use("Agg")
-from matplotlib import pyplot as plt
 from partition_functions import molecular_hydrogen_energy
 from constants import BOLTZMANN
 import numpy as np
