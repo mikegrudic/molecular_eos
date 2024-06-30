@@ -23,7 +23,8 @@ def do_plots():
     Tu = eos.u_to_temp(u)
     if not np.isclose(Tgrid, Tu, rtol=1e-15).all():
         raise ValueError("Inverted temperature calculated from u not consistent.")
-    ax[0].plot(Tu, e / (BOLTZMANN * Tgrid), ls="dotted", color="red")
+    ax[0].plot(Tu, e / (BOLTZMANN * Tgrid), ls="dotted", color="red", label="Inverted")
+    ax[0].legend()
 
     ax[1].plot(Tgrid, cv / BOLTZMANN, **kw)
     ax[2].plot(Tgrid, gamma, **kw)
