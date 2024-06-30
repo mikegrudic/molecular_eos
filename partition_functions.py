@@ -12,7 +12,7 @@ VECTORIZE_TARGET = "parallel"
 @njit(parallel=True, fastmath=True)
 def molecular_hydrogen_zrot(temp, ortho=True):
     """
-    Average rotational energy of a molecular hydrogen molecule
+    Partition function of hydrogen molecule and its derivatives
 
     Parameters
     ----------
@@ -74,7 +74,6 @@ def molecular_hydrogen_zrot(temp, ortho=True):
             z += zterm
             dz_dtemp += dzterm
             d2z_dtemp2 += d2zterm
-            # print(zterm / z, dzterm / dz_dtemp, d2zterm / d2z_dtemp2)
             error = zterm / z  # max(zterm / z, dzterm / dz_dtemp, d2zterm / d2z_dtemp2)
             j += 2
 
@@ -91,7 +90,7 @@ def molecular_hydrogen_zrot(temp, ortho=True):
 
 
 @njit(parallel=True, fastmath=True)
-def molecular_hydrogen_zrot(temp, ortho=True):
+def molecular_hydrogen_zrot2(temp, ortho=True):
     """
     Average rotational energy of a molecular hydrogen molecule
 
@@ -115,7 +114,7 @@ def molecular_hydrogen_zrot(temp, ortho=True):
         temp = np.array([temp])
     else:
         N = temp.shape[0]
-    result = np.empty((N, 3))
+    result = np.empty(N)
 
     for i in prange(N):
         error = 1e100
@@ -123,49 +122,29 @@ def molecular_hydrogen_zrot(temp, ortho=True):
         dz_dtemp = 0.0
         d2z_dtemp2 = 0.0
         temp_i = temp[i]
-        theta_beta = THETA_ROT / temp_i
-
+        # calculate everything in terms of dimmensionless x, convert to beta or T later
+        x = THETA_ROT / temp_i
+        expmx = np.exp(-x)
+        expmx8 = np.power(expmx, 8)
         if ortho:
             j = 1
+            zterm = 9.0
+            expterm = expmx * expmx * expmx8
+            z = zterm
         else:
             j = 0
+            zterm = 1.0
+            z = zterm
+            expterm = expmx8 / (expmx * expmx)
 
         while error > EPSILON:
-            twojplusone = 2 * j + 1
-            jjplusone = j * (j + 1)
-
-            if ortho:
-                expterm = 3 * np.exp(-theta_beta * (jjplusone - 2))
-                zterm = twojplusone * expterm
-                dzterm = (jjplusone - 2) * theta_beta / temp_i * zterm
-                d2zterm = (
-                    ((jjplusone - 2) * THETA_ROT - 2 * temp_i)
-                    * dzterm
-                    / (temp_i * temp_i)
-                )
-            else:
-                expterm = np.exp(-theta_beta * jjplusone)
-                zterm = twojplusone * expterm
-                # twojplusone * expterm * jjplusone * theta_beta / temp_i
-                dzterm = jjplusone * theta_beta * zterm / temp_i
-                d2zterm = (
-                    (jjplusone * THETA_ROT - 2 * temp_i) * dzterm / (temp_i * temp_i)
-                )
-
+            expterm *= expmx8
+            zterm *= (2 * j + 5) / (2 * j + 1) * expterm
             z += zterm
-            dz_dtemp += dzterm
-            d2z_dtemp2 += d2zterm
-            error = zterm / z  # max(zterm / z, dzterm / dz_dtemp, d2zterm / d2z_dtemp2)
+            error = zterm / z
             j += 2
 
-        result[i, 0] = z
-        result[i, 1] = BOLTZMANN * temp_i * temp_i * dz_dtemp / z
-        result[i, 2] = (
-            BOLTZMANN
-            * temp_i
-            * (2 * dz_dtemp + temp_i * d2z_dtemp2 - temp_i * dz_dtemp * dz_dtemp / z)
-            / z
-        )
+        result[i] = z
 
     return result
 
