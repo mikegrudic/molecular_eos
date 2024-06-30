@@ -10,7 +10,7 @@ import numpy as np
 def do_plots():
     """Make plots of internal energy, heat capacity, and adiabatic index"""
     Tgrid = np.logspace(1, 4.5, 10**6)
-    logzrot, e, cv, gamma = molecular_hydrogen_energy(Tgrid)
+    _, e, cv, gamma = molecular_hydrogen_energy(Tgrid)
 
     fig, ax = plt.subplots(1, 3, figsize=(8, 3))
 
@@ -19,6 +19,9 @@ def do_plots():
     ax[1].plot(Tgrid, cv / BOLTZMANN, **kw)
     ax[2].plot(Tgrid, gamma, **kw)
 
+    T, gamma = np.loadtxt("data/boley_2007_gamma.dat").T
+    ax[2].plot(T, gamma, color="red", ls="dashed", label="Boley 2007")
+    ax[2].legend()
     for a in ax:
         a.set(xlabel=r"$T\,\left(\rm K\right)$", xscale="log")
     ax[0].set_ylabel(r"$\langle E \rangle/k_{\rm B} T$")
