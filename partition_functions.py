@@ -61,12 +61,11 @@ def molecular_hydrogen_zrot(temp, ortho=True):
             zterm *= (2 * j + 1) / (2 * j - 3) * expterm
 
             if ortho:
-                dzterm = (jjplusone - 2) * x / temp_i * zterm
-                d2zterm = ((jjplusone - 2) * x - 2) * dzterm / temp_i
+                dzterm = (jjplusone - 2) * x * zterm
+                d2zterm = ((jjplusone - 2) * x - 2) * dzterm
             else:
-                dzterm = jjplusone * x * zterm / temp_i
-                d2zterm = (jjplusone * x - 2) * dzterm / temp_i
-
+                dzterm = jjplusone * x * zterm
+                d2zterm = (jjplusone * x - 2) * dzterm
             z += zterm
             dz_dtemp += dzterm
             d2z_dtemp2 += d2zterm
@@ -74,12 +73,9 @@ def molecular_hydrogen_zrot(temp, ortho=True):
             expterm *= expmx8
 
         result[i, 0] = z
-        result[i, 1] = BOLTZMANN * temp_i * temp_i * dz_dtemp / z
+        result[i, 1] = BOLTZMANN * temp_i * dz_dtemp / z
         result[i, 2] = (
-            BOLTZMANN
-            * temp_i
-            * (2 * dz_dtemp + temp_i * d2z_dtemp2 - temp_i * dz_dtemp * dz_dtemp / z)
-            / z
+            BOLTZMANN * (2 * dz_dtemp + d2z_dtemp2 - dz_dtemp * dz_dtemp / z) / z
         )
 
     return result
