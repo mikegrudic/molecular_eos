@@ -86,64 +86,6 @@ def molecular_hydrogen_zrot(temp, ortho=True):
 
 
 @njit(parallel=True, fastmath=True)
-def molecular_hydrogen_zrot2(temp, ortho=True):
-    """
-    Average rotational energy of a molecular hydrogen molecule
-
-    Parameters
-    ----------
-    temp: float or array_like
-        Temperature in K
-    ortho: boolean, optional
-        True if you want ortho-H2, otherwise assumes para
-
-    Returns
-    -------
-    result: ndarray
-        Shape (N,3) array containing the rotational partition function value,
-        each row returns the average rotational energy per molecule, and the
-        heat capacity per molecule at constant volume
-    """
-
-    if isinstance(temp, float):
-        N = 1
-        temp = np.array([temp])
-    else:
-        N = temp.shape[0]
-    result = np.empty(N)
-
-    for i in prange(N):
-        error = 1e100
-        z = 0.0
-        temp_i = temp[i]
-        # calculate everything in terms of dimmensionless x, convert to beta or T later
-        x = THETA_ROT / temp_i
-        expmx = np.exp(-x)
-        expmx8 = np.power(expmx, 8)
-        if ortho:
-            j = 1
-            zterm = 9.0
-            expterm = expmx * expmx * expmx8
-            z = zterm
-        else:
-            j = 0
-            zterm = 1.0
-            z = zterm
-            expterm = expmx8 / (expmx * expmx)
-
-        while error > EPSILON:
-            zterm *= (2 * j + 5) / (2 * j + 1) * expterm
-            z += zterm
-            error = zterm / z
-            expterm *= expmx8
-            j += 2
-
-        result[i] = z
-
-    return result
-
-
-@njit(parallel=True, fastmath=True)
 def molecular_hydrogen_zvib(temp):
     """
     Mean vibrational energy of a hydrogen molecule
