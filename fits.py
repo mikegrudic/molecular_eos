@@ -12,9 +12,9 @@ def sigmoid_sqrt(x):
 
 def do_fits():
     """Generate parameters for fits to thermodynamic quantities"""
-    Tgrid = np.logspace(0, 4.5, 10**5)
+    Tgrid = np.logspace(1, 3, 10**5)
     logT = np.log10(Tgrid)
-    logzrot, e, cv, gamma = molecular_hydrogen_energy(Tgrid)
+    logzrot, _, _, _ = molecular_hydrogen_energy(Tgrid)
     z = np.exp(logzrot)
 
     def fitfunc(params):
@@ -22,14 +22,14 @@ def do_fits():
             1.0 / params[0]
         )
 
-    def fitfunc(params):
-        return np.log(
-            np.exp(z.min() ** params[0])
-            + np.exp((Tgrid / 10 ** params[1]) ** params[0])
-        ) ** (1.0 / params[0])
+    # def fitfunc(params):
+    #     return np.log(
+    #         np.exp(z.min() ** params[0])
+    #         + np.exp((Tgrid / 10 ** params[1]) ** params[0])
+    #     ) ** (1.0 / params[0])
 
     def lossfunc(params):
-        return np.sum(np.log(fitfunc(params) / z) ** 2)
+        return np.sum(np.abs(np.log(fitfunc(params) / z)) ** 2)
 
     params = minimize(
         lossfunc,

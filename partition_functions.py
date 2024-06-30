@@ -3,7 +3,7 @@ and vibrational partition functions of molecular hydrogen
 """
 
 import numpy as np
-from numba import vectorize, float64, boolean, njit, prange
+from numba import njit, prange
 from constants import BOLTZMANN, THETA_ROT, THETA_VIB, EPSILON
 
 VECTORIZE_TARGET = "parallel"
@@ -75,6 +75,86 @@ def molecular_hydrogen_zrot(temp, ortho=True):
             dz_dtemp += dzterm
             d2z_dtemp2 += d2zterm
             # print(zterm / z, dzterm / dz_dtemp, d2zterm / d2z_dtemp2)
+            error = zterm / z  # max(zterm / z, dzterm / dz_dtemp, d2zterm / d2z_dtemp2)
+            j += 2
+
+        result[i, 0] = z
+        result[i, 1] = BOLTZMANN * temp_i * temp_i * dz_dtemp / z
+        result[i, 2] = (
+            BOLTZMANN
+            * temp_i
+            * (2 * dz_dtemp + temp_i * d2z_dtemp2 - temp_i * dz_dtemp * dz_dtemp / z)
+            / z
+        )
+
+    return result
+
+
+@njit(parallel=True, fastmath=True)
+def molecular_hydrogen_zrot(temp, ortho=True):
+    """
+    Average rotational energy of a molecular hydrogen molecule
+
+    Parameters
+    ----------
+    temp: float or array_like
+        Temperature in K
+    ortho: boolean, optional
+        True if you want ortho-H2, otherwise assumes para
+
+    Returns
+    -------
+    result: ndarray
+        Shape (N,3) array containing the rotational partition function value,
+        each row returns the average rotational energy per molecule, and the
+        heat capacity per molecule at constant volume
+    """
+
+    if isinstance(temp, float):
+        N = 1
+        temp = np.array([temp])
+    else:
+        N = temp.shape[0]
+    result = np.empty((N, 3))
+
+    for i in prange(N):
+        error = 1e100
+        z = 0.0
+        dz_dtemp = 0.0
+        d2z_dtemp2 = 0.0
+        temp_i = temp[i]
+        theta_beta = THETA_ROT / temp_i
+
+        if ortho:
+            j = 1
+        else:
+            j = 0
+
+        while error > EPSILON:
+            twojplusone = 2 * j + 1
+            jjplusone = j * (j + 1)
+
+            if ortho:
+                expterm = 3 * np.exp(-theta_beta * (jjplusone - 2))
+                zterm = twojplusone * expterm
+                dzterm = (jjplusone - 2) * theta_beta / temp_i * zterm
+                d2zterm = (
+                    ((jjplusone - 2) * THETA_ROT - 2 * temp_i)
+                    * dzterm
+                    / (temp_i * temp_i)
+                )
+            else:
+                expterm = np.exp(-theta_beta * jjplusone)
+                zterm = twojplusone * expterm
+                # twojplusone * expterm * jjplusone * theta_beta / temp_i
+                dzterm = jjplusone * theta_beta * zterm / temp_i
+                d2zterm = (
+                    (jjplusone * THETA_ROT - 2 * temp_i) * dzterm / (temp_i * temp_i)
+                )
+
+            z += zterm
+            dz_dtemp += dzterm
+            d2z_dtemp2 += d2zterm
             error = zterm / z  # max(zterm / z, dzterm / dz_dtemp, d2zterm / d2z_dtemp2)
             j += 2
 

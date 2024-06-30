@@ -84,21 +84,41 @@ class EOS:
     def internal_energy_perH(self, temp):
         """Returns internal energy per H as a function of temperature"""
         kT = BOLTZMANN * temp
-        logzrot, e_H2, cv, gamma = molecular_hydrogen_energy(Tgrid)
+        _, e_H2, _, _ = molecular_hydrogen_energy(temp)
         eps_H2 = 0.5 * self.cs.X * (1 - self.cs.y) * e_H2
         eps_HI = 1.5 * self.cs.X * (1 + self.cs.x) * self.cs.y * kT
         eps_He = 0.375 * self.cs.Y * kT
-        eps_diss = 4.48 * ELECTRONVOLT * self.cs.X * self.cs.y / 2
-        return eps_H2 + eps_HI + eps_He + eps_diss
+        # eps_diss = 4.48 * ELECTRONVOLT * self.cs.X * self.cs.y / 2
+        return eps_H2 + eps_HI + eps_He  # + eps_diss
+
+    def cV_perH(self, temp):
+        """Returns heat capacity per H as a function of temperature"""
+        _, _, cv, _ = molecular_hydrogen_energy(temp)
+        cv_H2 = 0.5 * self.cs.X * (1 - self.cs.y) * cv
+        cv_HI = 1.5 * self.cs.X * (1 + self.cs.x) * self.cs.y * BOLTZMANN
+        cv_He = 0.375 * self.cs.Y * BOLTZMANN
+        # eps_diss = 4.48 * ELECTRONVOLT * self.cs.X * self.cs.y / 2
+        return cv_H2 + cv_HI + cv_He  # + eps_diss
+
+    def cV_permass(self, temp):
+        return self.perH_to_permass(self.cV_perH(temp))
+
+    def perH_to_permass(self, quantity):
+        """Convert a per-H-nucleus quantity to per-unit-mass in CGS"""
+        return quantity * self.cs.X / PROTONMASS
+
+    def perH_to_perparticle(self, quantity):
+        """Convert a per-H-nucleus quantity to per-unit-mass in CGS"""
+        return quantity * self.mean_molecular_weight
 
     def internal_energy_permass(self, temp):
         """Returns internal energy per unit mass"""
         e_perH = self.internal_energy_perH(temp)
-        return e_perH / PROTONMASS
+        return self.perH_to_permass(e_perH)
 
     def internal_energy_perparticle(self, temp):
         """Returns internal energy per particle"""
-        return self.internal_energy_perH(temp) * self.mean_molecular_weight
+        return self.perH_to_perparticle(self.internal_energy_perH(temp))
 
     def pressure_from_temp(self, temp, density):
         """Returns pressure if temperature is provided"""
@@ -111,13 +131,24 @@ class EOS:
         n = density / (self.mean_molecular_weight * PROTONMASS)
         return n * BOLTZMANN * temp
 
-    def u_to_temp(self, u):
+    def u_to_temp(self, u, method="newton", n_iter=4):
         """Converts internal energy per unit mass to temperature"""
 
         def func(T):
             return self.internal_energy_permass(T) - u
 
-        return root(func, u * PROTONMASS / BOLTZMANN).x
+        def jac(T):
+            return self.perH_to_permass(self.cV_perH(T))
+
+        Tguess = u * PROTONMASS / (1.5 * BOLTZMANN)
+
+        if method == "newton":
+            for _ in range(n_iter):
+                dT = -func(Tguess) / jac(Tguess)  # newton iteration
+                Tguess += dT
+            return Tguess
+
+        return root(func, Tguess).x
 
     def eos_gamma(self, temp):
         """Returns adiabatic index"""
