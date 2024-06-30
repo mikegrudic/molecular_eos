@@ -42,8 +42,9 @@ def molecular_hydrogen_zrot(temp, ortho=True):
         dz_dtemp = 0.0
         d2z_dtemp2 = 0.0
         temp_i = temp[i]
-        theta_beta = THETA_ROT / temp_i
-
+        x = THETA_ROT / temp_i
+        expmx = np.exp(-x)
+        expmx8 = np.power(expmx, 8)
         if ortho:
             j = 1
         else:
@@ -54,27 +55,20 @@ def molecular_hydrogen_zrot(temp, ortho=True):
             jjplusone = j * (j + 1)
 
             if ortho:
-                expterm = 3 * np.exp(-theta_beta * (jjplusone - 2))
+                expterm = 3 * np.exp(-x * (jjplusone - 2))
                 zterm = twojplusone * expterm
-                dzterm = (jjplusone - 2) * theta_beta / temp_i * zterm
-                d2zterm = (
-                    ((jjplusone - 2) * THETA_ROT - 2 * temp_i)
-                    * dzterm
-                    / (temp_i * temp_i)
-                )
+                dzterm = (jjplusone - 2) * x / temp_i * zterm
+                d2zterm = ((jjplusone - 2) * x - 2) * dzterm / temp_i
             else:
-                expterm = np.exp(-theta_beta * jjplusone)
+                expterm = np.exp(-x * jjplusone)
                 zterm = twojplusone * expterm
-                # twojplusone * expterm * jjplusone * theta_beta / temp_i
-                dzterm = jjplusone * theta_beta * zterm / temp_i
-                d2zterm = (
-                    (jjplusone * THETA_ROT - 2 * temp_i) * dzterm / (temp_i * temp_i)
-                )
+                dzterm = jjplusone * x * zterm / temp_i
+                d2zterm = (jjplusone * x - 2) * dzterm / temp_i
 
             z += zterm
             dz_dtemp += dzterm
             d2z_dtemp2 += d2zterm
-            error = zterm / z  # max(zterm / z, dzterm / dz_dtemp, d2zterm / d2z_dtemp2)
+            error = zterm / z
             j += 2
 
         result[i, 0] = z
