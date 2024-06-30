@@ -45,8 +45,6 @@ def molecular_hydrogen_zrot(temp, ortho=True):
         x = THETA_ROT / temp_i
         expmx = np.exp(-x)
         expmx8 = np.power(expmx, 8)
-        expterm = 1.0
-        dexpterm = 1.0
         if ortho:
             j = 1
             z = zterm = 9.0
@@ -56,18 +54,16 @@ def molecular_hydrogen_zrot(temp, ortho=True):
             z = zterm = 1.0
             expterm = expmx8 / (expmx * expmx)
 
+        # Summing over rotational levels
         while error > EPSILON:
-            jjplusone = (j + 2) * ((j + 2) + 1)
-            zterm *= (2 * j + 5) / (2 * j + 1) * expterm
+            j += 2
+            jjplusone = j * (j + 1)
+            zterm *= (2 * j + 1) / (2 * j - 3) * expterm
 
             if ortho:
-                # expterm = np.exp(-x * (jjplusone - 2))
-                # zterm = 3 * twojplusone * expterm
                 dzterm = (jjplusone - 2) * x / temp_i * zterm
                 d2zterm = ((jjplusone - 2) * x - 2) * dzterm / temp_i
             else:
-                # expterm = np.exp(-x * jjplusone)
-                # zterm = twojplusone * expterm
                 dzterm = jjplusone * x * zterm / temp_i
                 d2zterm = (jjplusone * x - 2) * dzterm / temp_i
 
@@ -76,7 +72,6 @@ def molecular_hydrogen_zrot(temp, ortho=True):
             d2z_dtemp2 += d2zterm
             error = zterm / z
             expterm *= expmx8
-            j += 2
 
         result[i, 0] = z
         result[i, 1] = BOLTZMANN * temp_i * temp_i * dz_dtemp / z

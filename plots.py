@@ -27,6 +27,7 @@ def do_plots():
     ax[0].set_ylabel(r"$\langle E \rangle/k_{\rm B} T$")
     ax[1].set_ylabel(r"$c_{\rm V} / k_{\rm B}$")
     ax[2].set_ylabel(r"$\Gamma_{\rm 1}$")
+    ax[1].set_title(r"3:1 ortho:para H$_{\rm 2}$ mixture")
     fig.tight_layout()
 
     plt.savefig("H2_eos.png", bbox_inches="tight", dpi=300)
