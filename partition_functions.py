@@ -10,9 +10,95 @@ VECTORIZE_TARGET = "parallel"
 
 
 @njit(parallel=True, fastmath=True)
-def molecular_hydrogen_zrot(temp, ortho=True):
+def molecular_hydrogen_zrot_mixture(temp, ortho_frac=0.75):
     """
-    Partition function of hydrogen molecule and its derivatives
+    Rotational partition function of hydrogen molecule and derived quantities,
+    considering a mixture of ortho- and parahydrogen that cannot efficiently
+    come into equilibrium.
+
+    Parameters
+    ----------
+    temp: float or array_like
+        Temperature in K
+    ortho_frac: float, optional
+        Fraction of ortho-H2 (default is 3:1 ortho:para mixture)
+
+    Returns
+    -------
+    result: ndarray
+        Shape (N,3) array where each row stores the partition function value,
+        the average rotational energy per molecule, and the heat capacity per
+        molecule at constant volume.
+    """
+
+    if isinstance(temp, float):
+        N = 1
+        temp = np.array([temp])
+    else:
+        N = temp.shape[0]
+    result = np.empty((N, 3))
+
+    para_frac = 1 - ortho_frac
+
+    for i in prange(N):
+        error = 1e100
+        z = np.zeros(2)  # 0 for para, 1 for ortho
+        dz_dtemp = np.zeros(2)
+        d2z_dtemp2 = np.zeros(2)
+        zterm = np.zeros(2)
+        expterm = np.zeros(2)
+
+        x = THETA_ROT / temp[i]
+        expmx = np.exp(-x)
+        expmx4 = np.power(expmx, 4)
+        z[1] = zterm[1] = 9.0
+        z[0] = zterm[0] = 1.0
+        expterm = expmx4 * expmx * expmx
+
+        # Summing over rotational levels
+        j = 2
+        while error > EPSILON:
+            s = j % 2
+            jjplusone = j * (j + 1)
+            zterm[s] *= (2 * j + 1) / (2 * j - 3) * expterm
+            if s == 1:  # ortho
+                dzterm = (jjplusone - 2) * x * zterm[1]
+                d2zterm = ((jjplusone - 2) * x - 2) * dzterm
+            else:  # para
+                dzterm = jjplusone * x * zterm[0]
+                d2zterm = (jjplusone * x - 2) * dzterm
+            z[s] += zterm[s]
+            dz_dtemp[s] += dzterm
+            d2z_dtemp2[s] += d2zterm
+            error = max(zterm[0] / z[0], zterm[1] / z[1])
+            expterm *= expmx4
+            j += 1
+
+        result[i, 0] = np.exp(
+            para_frac * np.log(z[0]) + ortho_frac * np.log(z[1])
+        )  # partition function
+        result[i, 1] = (
+            BOLTZMANN
+            * temp[i]
+            * (para_frac * dz_dtemp[0] / z[0] + ortho_frac * dz_dtemp[1] / z[1])
+        )  # mean energy
+        result[i, 2] = BOLTZMANN * (
+            ortho_frac
+            * (2 * dz_dtemp[1] + d2z_dtemp2[1] - dz_dtemp[1] * dz_dtemp[1] / z[1])
+            / z[1]
+            + para_frac
+            * (2 * dz_dtemp[0] + d2z_dtemp2[0] - dz_dtemp[0] * dz_dtemp[0] / z[0])
+            / z[0]
+        )  # heat capacity
+
+    return result
+
+
+@njit(parallel=True, fastmath=True)
+def molecular_hydrogen_zrot_simple(temp, ortho=True):
+    """
+    Partition function of hydrogen molecule and its derivatives for a single
+    spin isomer
 
     Parameters
     ----------
@@ -130,20 +216,13 @@ def molecular_hydrogen_energy(temp, ortho_frac=0.75):
         capacity per molecule in CGS, and adiabatic index
     """
 
-    para_frac = 1 - ortho_frac
-    zrot_ortho = molecular_hydrogen_zrot(temp, True)
-    zrot_para = molecular_hydrogen_zrot(temp, False)
+    zrot = molecular_hydrogen_zrot_mixture(temp, ortho_frac)
     zvib = molecular_hydrogen_zvib(temp)
     etot = 1.5 * BOLTZMANN * temp  # translation
     cv = 1.5 * BOLTZMANN
-    etot += ortho_frac * zrot_ortho[:, 1]  # ortho rotation
-    cv += ortho_frac * zrot_ortho[:, 2]
-    etot += para_frac * zrot_para[:, 1]  # para rotation
-    cv += para_frac * zrot_para[:, 2]
+    etot += zrot[:, 1]  # rotation
+    cv += zrot[:, 2]
     etot += zvib[:, 1]  # vibration
     cv += zvib[:, 2]
     gamma = (cv / BOLTZMANN + 1) / (cv / BOLTZMANN)
-    zrot_total = ortho_frac * np.log(zrot_ortho[:, 0]) + para_frac * np.log(
-        zrot_para[:, 0]
-    )
-    return zrot_total, etot, cv, gamma
+    return zrot[:, 0], etot, cv, gamma
