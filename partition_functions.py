@@ -119,8 +119,6 @@ def molecular_hydrogen_zrot2(temp, ortho=True):
     for i in prange(N):
         error = 1e100
         z = 0.0
-        dz_dtemp = 0.0
-        d2z_dtemp2 = 0.0
         temp_i = temp[i]
         # calculate everything in terms of dimmensionless x, convert to beta or T later
         x = THETA_ROT / temp_i
@@ -138,10 +136,10 @@ def molecular_hydrogen_zrot2(temp, ortho=True):
             expterm = expmx8 / (expmx * expmx)
 
         while error > EPSILON:
-            expterm *= expmx8
             zterm *= (2 * j + 5) / (2 * j + 1) * expterm
             z += zterm
             error = zterm / z
+            expterm *= expmx8
             j += 2
 
         result[i] = z
