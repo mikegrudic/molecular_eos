@@ -100,12 +100,41 @@ double molecular_hydrogen_zvib(double temp, double result[3])
     result[2] = THETA_VIB * result[0] * result[1] / (temp * temp);
 }
 
+double molecular_hydrogen_energy(double temp, double result[4]){
+    /*
+    Vibrational partition function of hydrogen molecule and derived quantities.
+
+    Parameters
+    ----------
+    temp: double
+        Temperature in K
+    result: double[4]
+        Stores the rotational partition function value, the average rotational energy per molecule,
+        the heat capacity per molecule at constant volume, and the adiabatic index
+    */
+
+    double zrot[4], zvib[4];
+    molecular_hydrogen_zrot_mixture(temp, zrot);
+    molecular_hydrogen_zvib(temp,zvib);
+    double etot = 1.5 * BOLTZMANN * temp;  // translation
+    double cv = 1.5 * BOLTZMANN;
+    etot += zrot[1];  // rotation
+    cv += zrot[2];
+    etot += zvib[1];  // vibration
+    cv += zvib[2];
+    double gamma = (cv / BOLTZMANN + 1) / (cv / BOLTZMANN);
+    result[0] = zrot[0];
+    result[1] = etot;
+    result[2] = cv;
+    result[3] = gamma;
+}
+
 void main()
 {
     double logT = 1;
     double *Tgrid = malloc(sizeof(double)*41);
     int i = 0;
-    double result[3];
+    double result[4];
     // Open a file in writing mode
     FILE *fptr;
     fptr = fopen("partition_function_c.dat", "w");
@@ -113,8 +142,8 @@ void main()
     while (logT <= 5)
     {
         Tgrid[i] = pow(10., logT);
-        molecular_hydrogen_zrot_mixture(Tgrid[i], result);
-        fprintf(fptr, "%g %g %g %g\n",Tgrid[i],result[0],result[1],result[2]);
+        molecular_hydrogen_energy(Tgrid[i], result);
+        fprintf(fptr, "%g %g %g %g %g\n",Tgrid[i],result[0],result[1],result[2],result[3]);
         logT += 1e-1;
         i++;
     }
