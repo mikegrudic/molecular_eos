@@ -137,7 +137,7 @@ void main()
     // Open a file in writing mode
     FILE *fptr;
     fptr = fopen("partition_function_c.dat", "w");
-    fprintf(fptr, "# (0) Temperature (K) (1) Partition function (2) Average energy (erg) (3) Heat capacity at constant vol (erg/K)\n");
+    fprintf(fptr, "# (0) Temperature (K) (1) Average energy (erg) (2) Heat capacity at constant vol (erg/K) (3) Adiabatic index gamma_1\n");
     while (logT <= 5)
     {
         Tgrid[i] = pow(10., logT);
