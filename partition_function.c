@@ -5,7 +5,7 @@
 const double BOLTZMANN = 1.380649e-16; // in erg/K
 const double EPSILON = 2.220446049250313e-16;
 
-double molecular_hydrogen_zrot_mixture(double temp, double result[3])
+void molecular_hydrogen_zrot_mixture(double temp, double result[3])
 {
     /*
     Rotational partition function of hydrogen molecule and derived quantities,
@@ -80,7 +80,7 @@ double molecular_hydrogen_zrot_mixture(double temp, double result[3])
     result[2] = BOLTZMANN * (ortho_frac * (2 * dz_dtemp[1] + d2z_dtemp2[1] - dz_dtemp[1] * dz_dtemp[1] / z[1]) / z[1] + para_frac * (2 * dz_dtemp[0] + d2z_dtemp2[0] - dz_dtemp[0] * dz_dtemp[0] / z[0]) / z[0]); // heat capacity
 }
 
-double molecular_hydrogen_zvib(double temp, double result[3])
+void molecular_hydrogen_zvib(double temp, double result[3])
 {
     /*
     Vibrational partition function of hydrogen molecule and derived quantities.
@@ -100,7 +100,7 @@ double molecular_hydrogen_zvib(double temp, double result[3])
     result[2] = THETA_VIB * result[0] * result[1] / (temp * temp);
 }
 
-double molecular_hydrogen_partition(double temp, double result[3]){
+void molecular_hydrogen_partition(double temp, double result[3]){
     /*
     Partition function of hydrogen molecule and derived quantities.
 
