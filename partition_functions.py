@@ -46,7 +46,6 @@ def molecular_hydrogen_zrot_mixture(temp, ortho_frac=0.75):
         dz_dtemp = np.zeros(2)
         d2z_dtemp2 = np.zeros(2)
         zterm = np.zeros(2)
-        expterm = np.zeros(2)
 
         x = THETA_ROT / temp[i]
         expmx = np.exp(-x)
@@ -54,7 +53,7 @@ def molecular_hydrogen_zrot_mixture(temp, ortho_frac=0.75):
         z[1] = zterm[1] = 9.0
         z[0] = zterm[0] = 1.0
         expterm = expmx4 * expmx * expmx
-
+        # print(expterm)
         # Summing over rotational levels
         j = 2
         while error > EPSILON:
