@@ -1,4 +1,4 @@
-from partition_functions import molecular_hydrogen_energy
+from partition_functions import molecular_hydrogen_partition
 from constants import BOLTZMANN
 import numpy as np
 from scipy.optimize import minimize
@@ -14,7 +14,7 @@ def do_fits():
     """Generate parameters for fits to thermodynamic quantities"""
     Tgrid = np.logspace(1, 3, 10**5)
     logT = np.log10(Tgrid)
-    logzrot, _, _, _ = molecular_hydrogen_energy(Tgrid)
+    logzrot, _, _, _ = molecular_hydrogen_partition(Tgrid)
     z = np.exp(logzrot)
 
     def fitfunc(params):

@@ -197,7 +197,7 @@ def molecular_hydrogen_zvib(temp):
     return result
 
 
-def molecular_hydrogen_energy(temp, ortho_frac=0.75):
+def molecular_hydrogen_partition(temp, ortho_frac=0.75):
     """
     Partition function properties of a mixture of para- and ortho-hydrogen
 
@@ -224,4 +224,4 @@ def molecular_hydrogen_energy(temp, ortho_frac=0.75):
     etot += zvib[:, 1]  # vibration
     cv += zvib[:, 2]
     gamma = (cv / BOLTZMANN + 1) / (cv / BOLTZMANN)
-    return zrot[:, 0], etot, cv, gamma
+    return etot, cv, gamma

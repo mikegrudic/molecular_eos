@@ -10,7 +10,7 @@ adiabatic index, pressure, etc for a partially-ionized hydrogen-helium mixture
 from dataclasses import dataclass
 import numpy as np
 from scipy.optimize import root
-from partition_functions import molecular_hydrogen_energy
+from partition_functions import molecular_hydrogen_partition
 from constants import BOLTZMANN, ELECTRONVOLT, PROTONMASS
 
 
@@ -84,7 +84,7 @@ class EOS:
     def internal_energy_perH(self, temp):
         """Returns internal energy per H as a function of temperature"""
         kT = BOLTZMANN * temp
-        _, e_H2, _, _ = molecular_hydrogen_energy(temp)
+        e_H2, _, _ = molecular_hydrogen_partition(temp)
         eps_H2 = 0.5 * self.cs.X * (1 - self.cs.y) * e_H2
         eps_HI = 1.5 * self.cs.X * (1 + self.cs.x) * self.cs.y * kT
         eps_He = 0.375 * self.cs.Y * kT
@@ -93,7 +93,7 @@ class EOS:
 
     def cV_perH(self, temp):
         """Returns heat capacity per H as a function of temperature"""
-        _, _, cv, _ = molecular_hydrogen_energy(temp)
+        _, cv, _ = molecular_hydrogen_partition(temp)
         cv_H2 = 0.5 * self.cs.X * (1 - self.cs.y) * cv
         cv_HI = 1.5 * self.cs.X * (1 + self.cs.x) * self.cs.y * BOLTZMANN
         cv_He = 0.375 * self.cs.Y * BOLTZMANN

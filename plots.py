@@ -2,7 +2,7 @@ from matplotlib import pyplot as plt
 import matplotlib
 
 matplotlib.use("Agg")
-from partition_functions import molecular_hydrogen_energy
+from partition_functions import molecular_hydrogen_partition
 from constants import BOLTZMANN
 from EOS import *
 import numpy as np
@@ -11,7 +11,7 @@ import numpy as np
 def do_plots():
     """Make plots of internal energy, heat capacity, and adiabatic index"""
     Tgrid = np.logspace(1, 4.5, 10**6)
-    _, e, cv, gamma = molecular_hydrogen_energy(Tgrid)
+    e, cv, gamma = molecular_hydrogen_partition(Tgrid)
 
     fig, ax = plt.subplots(1, 3, figsize=(8, 3))
 
