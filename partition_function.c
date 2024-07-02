@@ -130,9 +130,11 @@ void molecular_hydrogen_partition(double temp, double result[3]) {
     result[2] = gamma;
 }
 
+#define NGRID 41
+
 void main() {
     double logT = 1;
-    double *Tgrid = malloc(sizeof(double) * 41);
+    double *Tgrid = malloc(sizeof(double) * NGRID);
     int i = 0;
     double result[3];
     // Open a file in writing mode
@@ -146,7 +148,7 @@ void main() {
         molecular_hydrogen_partition(Tgrid[i], result);
         fprintf(fptr, "%g %g %g %g\n", Tgrid[i], result[0], result[1],
                 result[2]);
-        logT += 1e-1;
+        logT += 4./(NGRID-1);
         i++;
     }
     // Close the file

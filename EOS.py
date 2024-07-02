@@ -105,11 +105,11 @@ class EOS:
 
     def perH_to_permass(self, quantity):
         """Convert a per-unit-mass in CGS quantity to per-H-nucleus"""
-        return quantity / (self.cs.X / PROTONMASS)
+        return quantity * (self.cs.X / PROTONMASS)
 
     def permass_to_perH(self, quantity):
         """Convert a per-H-nucleus quantity to per-unit-mass in CGS"""
-        return quantity * self.cs.X / PROTONMASS
+        return quantity / (self.cs.X / PROTONMASS)
 
     def perH_to_perparticle(self, quantity):
         """Convert a per-H-nucleus quantity to per-unit-mass in CGS"""

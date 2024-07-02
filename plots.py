@@ -21,7 +21,7 @@ def do_plots():
     eos = EOS(ChemicalState(hydrogen_massfrac=1.0, metallicity=0.0))
     u = eos.perH_to_permass(0.5 * e)
     Tu = eos.u_to_temp(u)
-    if not np.isclose(Tgrid, Tu, rtol=1e-15).all():
+    if not np.isclose(Tgrid, Tu).all():
         raise ValueError("Inverted temperature calculated from u not consistent.")
     ax[0].plot(Tu, e / (BOLTZMANN * Tgrid), ls="dotted", color="red", label="Inverted")
     ax[0].legend()
