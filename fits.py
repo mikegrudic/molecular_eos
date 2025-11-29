@@ -89,6 +89,12 @@ def H2_energy_over_kb(T):
 """
         F.write(code)
 
+    from energy_fit import H2_energy_over_kb
+
+    T = sp.Symbol("T")
+    numerical_func = sp.lambdify(T, H2_energy_over_kb(T))
+    assert np.all(np.isclose(numerical_func(Tgrid), etot_beta, atol=0.01))
+
 
 if __name__ == "__main__":
     do_fits()
