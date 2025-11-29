@@ -31,9 +31,11 @@ def do_fits():
     """Generate parameters for fits to thermodynamic quantities"""
     Tgrid = np.logspace(1, 5, 10**5)
     logT = np.log10(Tgrid)
-    etot, _, _ = molecular_hydrogen_partition(Tgrid)
+    etot, cv, _ = molecular_hydrogen_partition(Tgrid)
+    print(etot.dtype)
 
     etot_beta = etot / BOLTZMANN / Tgrid
+    cv = cv/BOLTZMANN
 
     sigmoid = sigmoid_exp
 
@@ -94,7 +96,7 @@ def H2_energy_over_kb(T):
     T = sp.Symbol("T")
     numerical_func = sp.lambdify(T, H2_energy_over_kb(T))
     assert np.all(np.isclose(numerical_func(Tgrid), etot_beta, atol=0.01))
-
+    np.save("T_vs_ebeta_cv.npy", np.c_[Tgrid, etot_beta, cv])
 
 if __name__ == "__main__":
     do_fits()
