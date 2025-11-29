@@ -73,21 +73,13 @@ def molecular_hydrogen_zrot_mixture(temp, ortho_frac=0.75):
             expterm *= expmx4
             j += 1
 
-        result[i, 0] = np.exp(
-            para_frac * np.log(z[0]) + ortho_frac * np.log(z[1])
-        )  # partition function
+        result[i, 0] = np.exp(para_frac * np.log(z[0]) + ortho_frac * np.log(z[1]))  # partition function
         result[i, 1] = (
-            BOLTZMANN
-            * temp[i]
-            * (para_frac * dz_dtemp[0] / z[0] + ortho_frac * dz_dtemp[1] / z[1])
+            BOLTZMANN * temp[i] * (para_frac * dz_dtemp[0] / z[0] + ortho_frac * dz_dtemp[1] / z[1])
         )  # mean energy
         result[i, 2] = BOLTZMANN * (
-            ortho_frac
-            * (2 * dz_dtemp[1] + d2z_dtemp2[1] - dz_dtemp[1] * dz_dtemp[1] / z[1])
-            / z[1]
-            + para_frac
-            * (2 * dz_dtemp[0] + d2z_dtemp2[0] - dz_dtemp[0] * dz_dtemp[0] / z[0])
-            / z[0]
+            ortho_frac * (2 * dz_dtemp[1] + d2z_dtemp2[1] - dz_dtemp[1] * dz_dtemp[1] / z[1]) / z[1]
+            + para_frac * (2 * dz_dtemp[0] + d2z_dtemp2[0] - dz_dtemp[0] * dz_dtemp[0] / z[0]) / z[0]
         )  # heat capacity
 
     return result
@@ -159,9 +151,7 @@ def molecular_hydrogen_zrot_simple(temp, ortho=True):
 
         result[i, 0] = z
         result[i, 1] = BOLTZMANN * temp_i * dz_dtemp / z
-        result[i, 2] = (
-            BOLTZMANN * (2 * dz_dtemp + d2z_dtemp2 - dz_dtemp * dz_dtemp / z) / z
-        )
+        result[i, 2] = BOLTZMANN * (2 * dz_dtemp + d2z_dtemp2 - dz_dtemp * dz_dtemp / z) / z
 
     return result
 
@@ -197,7 +187,7 @@ def molecular_hydrogen_zvib(temp):
     return result
 
 
-def molecular_hydrogen_partition(temp, ortho_frac=0.75):
+def molecular_hydrogen_partition(temp, ortho_frac=0.75, return_z=False):
     """
     Partition function properties of a mixture of para- and ortho-hydrogen
 
@@ -215,6 +205,7 @@ def molecular_hydrogen_partition(temp, ortho_frac=0.75):
         capacity per molecule in CGS, and adiabatic index
     """
 
+    ztrans = temp**1.5
     zrot = molecular_hydrogen_zrot_mixture(temp, ortho_frac)
     zvib = molecular_hydrogen_zvib(temp)
     etot = 1.5 * BOLTZMANN * temp  # translation
@@ -224,4 +215,7 @@ def molecular_hydrogen_partition(temp, ortho_frac=0.75):
     etot += zvib[:, 1]  # vibration
     cv += zvib[:, 2]
     gamma = (cv / BOLTZMANN + 1) / (cv / BOLTZMANN)
+    if return_z:
+        logz = np.log(zrot[:, 0]) + np.log(zvib[:, 0]) + np.log(ztrans)
+        return logz, etot, cv, gamma
     return etot, cv, gamma
